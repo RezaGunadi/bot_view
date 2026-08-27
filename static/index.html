@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Playlist Studio</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%235b8cff%27/%3E%3Cpath d=%27M13 10l9 6-9 6z%27 fill=%27white%27/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">▶</span>
+      <span class="brand-name">Playlist Studio</span>
+    </div>
+    <div class="chips" id="stats"></div>
+    <div class="topbar-actions">
+      <span class="env" id="env-info">—</span>
+      <button id="btn-rescan" class="mini ghost" title="Deteksi ulang monitor">↻</button>
+      <label class="switch" title="Buka window stream langsung fullscreen">
+        <input type="checkbox" id="opt-fullscreen" /><span>Fullscreen</span>
+      </label>
+      <button id="btn-start-all" class="primary">Start semua</button>
+      <button id="btn-stop-all" class="ghost">Stop semua</button>
+    </div>
+  </header>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <main class="grid">
+    <!-- ══════════ Playlist ══════════ -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Playlist</h2>
+        <button id="btn-new-playlist" class="mini primary">+ Baru</button>
+      </div>
+      <ul id="playlist-list" class="list"></ul>
+    </section>
+
+    <!-- ══════════ Isi playlist ══════════ -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2 id="items-title">Isi playlist</h2>
+        <span class="pill" id="items-count">0 video</span>
+        <button id="btn-check-playlist" class="mini"
+                title="Cek video yang sudah dihapus/private, sekalian ambil judul aslinya">✓ Periksa</button>
+        <button id="btn-copy-playlist" class="mini" title="Duplikat playlist ini beserta isinya">⧉ Copy</button>
+        <button id="btn-del-playlist" class="mini danger" title="Hapus playlist ini">Hapus</button>
+      </div>
+
+      <div class="add-box">
+        <div class="add-tabs">
+          <button class="tab active" data-tab="one">Satu link</button>
+          <button class="tab" data-tab="many">Banyak sekaligus</button>
+          <button class="tab" data-tab="excel">Dari Excel</button>
+        </div>
+
+        <form id="add-form" class="add-pane" data-pane="one">
+          <input id="url-input" type="text" autocomplete="off"
+                 placeholder="Tempel link YouTube / TikTok / Facebook / Instagram" />
+          <div class="row">
+            <input id="title-input" type="text" autocomplete="off" placeholder="Judul (opsional)" />
+            <button type="submit" class="primary">Tambah</button>
+          </div>
+        </form>
+
+        <form id="bulk-form" class="add-pane" data-pane="many" hidden>
+          <textarea id="bulk-input" rows="5"
+                    placeholder="Satu link per baris — tempel sekaligus sebanyak yang kamu mau."></textarea>
+          <button type="submit" class="primary">Tambah semua</button>
+        </form>
+
+        <div class="add-pane excel-pane" data-pane="excel" hidden>
+          <ol class="steps">
+            <li>Download templatenya, isi di Excel.</li>
+            <li>Kolom <code>url</code> wajib. <code>playlist</code> dan <code>judul</code> opsional.</li>
+            <li>Isi kolom <code>playlist</code> kalau mau bikin beberapa playlist sekaligus
+                — yang belum ada dibuat otomatis.</li>
+          </ol>
+          <div class="row">
+            <a id="btn-template" class="btn-like" href="/api/template" download>⬇ Download template</a>
+            <button id="btn-pick-file" type="button" class="primary">⬆ Upload file terisi</button>
+          </div>
+          <input id="excel-file" type="file" accept=".xlsx,.xlsm,.csv" hidden />
+          <p id="import-result" class="import-result" hidden></p>
+        </div>
+      </div>
+
+      <div class="filter-row">
+        <input id="item-search" type="search" placeholder="Cari judul atau link…" />
+      </div>
+
+      <ul id="item-list" class="list items"></ul>
+    </section>
+
+    <!-- ══════════ Stream ══════════ -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Stream</h2>
+        <button id="btn-fix-monitors" class="mini warn" hidden
+                title="Pindahkan permanen stream yang monitornya hilang">⚠ Pindahkan</button>
+        <button id="btn-new-stream" class="mini primary">+ Stream</button>
+      </div>
+      <ul id="stream-list" class="list streams"></ul>
+
+      <div class="panel-head" style="margin-top:18px">
+        <h2>Jadwal otomatis</h2>
+        <button id="btn-new-schedule" class="mini primary">+ Jadwal</button>
+      </div>
+      <ul id="schedule-list" class="list schedules"></ul>
+
+      <div class="panel-head" style="margin-top:18px">
+        <h2>Riwayat</h2>
+        <button id="btn-refresh-log" class="mini" title="Muat ulang">↻</button>
+      </div>
+      <ul id="log-list" class="list log"></ul>
+    </section>
+  </main>
+
+  <!-- Dialog serbaguna: konfirmasi & input, pengganti prompt/confirm bawaan browser -->
+  <div id="modal" class="modal-back" hidden>
+    <div class="modal">
+      <h3 id="modal-title">Judul</h3>
+      <p id="modal-body" class="modal-body"></p>
+      <div id="modal-form" class="modal-form" hidden></div>
+      <input id="modal-input" type="text" hidden />
+      <div class="modal-actions">
+        <button id="modal-cancel" class="ghost">Batal</button>
+        <button id="modal-ok" class="primary">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

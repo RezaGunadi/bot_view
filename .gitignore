@@ -1,0 +1,18 @@
+# Data & konfigurasi lokal
+.env
+data/
+*.db
+*.db-wal
+*.db-shm
+*.db.bak
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Hasil build exe
+build/
+dist/
+*.spec

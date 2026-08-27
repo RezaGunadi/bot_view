@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- "origin" mengirim hanya http://127.0.0.1:port, tanpa path/token.
+       "no-referrer" bikin YouTube menolak embed (error 153). -->
+  <meta name="referrer" content="origin" />
+  <title>Stream</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%235b8cff%27/%3E%3Cpath d=%27M13 10l9 6-9 6z%27 fill=%27white%27/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body class="player">
+  <div class="player-bar">
+    <span class="who" id="who">—</span>
+    <span class="count" id="count">0/0</span>
+    <span class="np" id="np">Belum diputar</span>
+    <span class="count" id="countdown"></span>
+    <span class="session" id="session"></span>
+    <button id="btn-prev" class="mini" title="Sebelumnya">⏮</button>
+    <button id="btn-playpause" class="mini" title="Play / Pause">⏸</button>
+    <button id="btn-next" class="mini" title="Berikutnya">⏭</button>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="placeholder" id="placeholder">
+      <div id="ph-text">Memuat antrian…</div>
+      <button id="btn-start" class="primary big-start" hidden>▶ Mulai nonton</button>
+    </div>
+  </div>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="/static/player.js"></script>
+</body>
+</html>

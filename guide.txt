@@ -1,0 +1,150 @@
+===============================================================================
+ PLAYLIST STUDIO - CATATAN CEPAT
+ Perintah untuk Windows dan Lubuntu/Linux. Buka file ini kalau lupa.
+===============================================================================
+
+
+-------------------------------------------------------------------------------
+ 1. LUBUNTU / LINUX
+-------------------------------------------------------------------------------
+
+  Sekali di awal (pasang browser + alat geser window):
+
+      sudo apt install chromium-browser wmctrl
+
+      chromium-browser  -> window stream terisolasi   (firefox juga boleh)
+      wmctrl            -> menempatkan window ke monitor yang benar
+      python3           -> sudah ada bawaan Lubuntu, tidak perlu dipasang
+
+  Menjalankan:
+
+      python3 run.py
+
+      Dependency Python dipasang sendiri saat run pertama (butuh internet
+      sekali). Run berikutnya langsung skip.
+
+  Supaya nyala sendiri tiap mini PC dihidupkan:
+
+      python3 run.py --install-autostart
+      python3 run.py --remove-autostart      (kalau mau dibatalkan)
+
+  PENTING: pakai sesi X11, JANGAN Wayland.
+  Deteksi monitor (xrandr) dan penempatan window (wmctrl) jalan lewat X11.
+  Lubuntu/LXQt bawaannya sudah X11. Kalau sesinya Wayland, semua stream
+  menumpuk di satu monitor.
+
+
+-------------------------------------------------------------------------------
+ 2. WINDOWS
+-------------------------------------------------------------------------------
+
+  Padanan perintah yang sama persis:
+
+      Lubuntu                              Windows
+      -----------------------------------  -----------------------------------
+      sudo apt install chromium-browser    pasang Chrome/Edge/Brave/Firefox
+                                           seperti biasa (installer .exe)
+      sudo apt install wmctrl              tidak perlu - sudah bawaan Windows
+
+      python3 run.py                       python run.py
+                                           atau klik 2x start.bat
+                                           atau klik 2x PlaylistStudio.exe
+
+      python3 run.py --install-autostart   python run.py --install-autostart
+                                           atau: PlaylistStudio.exe
+                                                 --install-autostart
+
+      python3 run.py --remove-autostart    python run.py --remove-autostart
+
+  Bedanya cuma dua:
+    - Windows tidak butuh wmctrl.
+    - Windows punya versi .exe yang tidak perlu Python sama sekali.
+      Bikinnya: python build_exe.py   ->  hasilnya di dist\PlaylistStudio.exe
+      (Untuk Linux, exe harus dibuat DI mesin Linux itu. Tapi tidak perlu,
+       karena Python sudah ada bawaan.)
+
+
+-------------------------------------------------------------------------------
+ 3. PERINTAH LAIN (sama di kedua OS)
+-------------------------------------------------------------------------------
+
+  Ganti "python" jadi "python3" kalau di Linux.
+
+      python run.py --port 8123     ganti port (bawaan 8000)
+      python run.py --no-browser    jangan buka GUI otomatis
+      python run.py --migrate-only  siapkan database saja lalu keluar
+      python run.py --reset-db      backup db lama, bikin ulang dari nol
+      python run.py --skip-deps     lewati pengecekan dependency
+      python run.py --reload        auto-reload (untuk ngoprek kode)
+      python run.py --help          daftar lengkap
+
+  GUI-nya di:  http://localhost:8000
+  Tab impor Excel langsung:  http://localhost:8000/#excel
+
+
+-------------------------------------------------------------------------------
+ 4. PINDAH OS / PINDAH KOMPUTER
+-------------------------------------------------------------------------------
+
+  Copy seluruh folder ini. Yang TIDAK perlu ikut:
+
+      data/  __pycache__/  .venv/  build/  dist/
+
+  Semuanya dibuat ulang otomatis.
+
+  KECUALI satu file - kalau mau playlist & jadwalmu ikut pindah, bawa juga:
+
+      data/playlist.db
+
+  Isi file itu: semua playlist, isi playlist, stream, jadwal, dan riwayat.
+  Formatnya SQLite biasa, jalan di Windows maupun Linux tanpa diubah apa pun.
+  Kalau tidak dibawa, komputer baru mulai dari kosong.
+
+
+-------------------------------------------------------------------------------
+ 5. KALAU ADA MASALAH
+-------------------------------------------------------------------------------
+
+  Video berdesakan berjejer di satu monitor (2 atau 4 kotak)
+      Itu bukan bug - artinya ada monitor yang tidak terdeteksi, dan window
+      yang seharusnya di sana dipindah ke monitor ini supaya kelihatan.
+      Cek kabel/monitornya, lalu klik tombol re-detect di pojok kanan atas.
+      Kalau monitor itu memang tidak dipakai lagi, klik "Pindahkan" di
+      kepala panel Stream.
+
+  Semua stream numpuk di satu monitor
+      Linux : sesi masih Wayland. Logout, di layar login pilih sesi X11/Xorg.
+              Atau wmctrl belum dipasang -> sudo apt install wmctrl
+      Windows: cek dropdown MONITOR di kartu stream, pastikan beda-beda.
+
+  "python: command not found" / "bukan perintah yang dikenal"
+      Linux : pakai python3, bukan python.
+      Windows: pasang ulang Python dan CENTANG "Add Python to PATH".
+              Atau pakai PlaylistStudio.exe yang tidak butuh Python.
+
+  Video jalan tapi berat / patah-patah (mini PC spek kecil)
+      1. JANGAN centang Fullscreen. YouTube memilih resolusi dari ukuran
+         window - window kecil = video lebih ringan.
+      2. Buka chrome://gpu di window stream, pastikan "Video Decode" aktif.
+      3. Realistis: mini PC murah kuat 2-3 stream sekaligus.
+
+  Window stream tertutup sendiri lalu kebuka lagi terus
+      Itu fitur auto-restart. Kalau memang mau dimatikan, pakai tombol Stop
+      di panel - bukan tombol X di window-nya. Atau matikan centang
+      "Nyalakan lagi kalau mati sendiri" di kartu stream itu.
+
+  Ada ruangan yang videonya diam
+      Lihat panel kontrol. Label "terjeda" = platform minta konfirmasi
+      "masih menonton?", perlu diklik sekali di ruangan itu.
+      Label "tidak merespons" = window-nya bermasalah/tertutup.
+
+  Video tidak mau jalan pas jam tayang
+      Klik tombol "Periksa" di kolom tengah. Video yang sudah dihapus atau
+      diprivat pemiliknya akan ditandai merah. Hapus atau ganti.
+
+  Windows bilang "Windows protected your PC" waktu buka exe
+      Klik "More info" -> "Run anyway". Itu muncul karena exe-nya belum
+      punya sertifikat penandatangan, bukan karena bermasalah.
+
+  Lupa semuanya
+      Baca README.md - isinya lengkap dengan penjelasan tiap fitur.
