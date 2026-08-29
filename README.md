@@ -74,13 +74,14 @@ mulai dari kosong.
 Jalan di Linux juga, dan untuk mini PC berspek kecil ini pilihan bagus.
 
 ```bash
-sudo apt install python3 chromium-browser wmctrl    # firefox juga boleh
+sudo apt install python3 python3-venv chromium-browser wmctrl   # firefox juga boleh
 python3 run.py
 ```
 
 | Paket | Untuk apa | Wajib? |
 |---|---|---|
 | `python3` | Sudah ada bawaan Lubuntu (3.10+ sejak 22.04). | Ya |
+| `python3-venv` | Dependency dipasang ke `.venv` di dalam proyek, bukan ke Python sistem. | Ya |
 | `chromium-browser` atau `firefox` | Window stream terisolasi. | Ya |
 | `wmctrl` | Menempatkan window ke monitor yang benar. | Sangat disarankan |
 | `xrandr` | Mendeteksi daftar monitor. Sudah ada bawaan. | Ya |
@@ -444,5 +445,6 @@ jangan mengubah versi lama — database yang sudah jalan otomatis ikut naik.
   sementara yang lain tetap main. Menutup satu window stream juga tidak mengganggu window
   lain — statusnya otomatis balik jadi berhenti di GUI dalam ~5 detik.
 - **Ctrl+C** di runner menutup semua window stream yang sedang jalan.
-#   r e p o s t  
+#   r e p o s t 
+ 
  

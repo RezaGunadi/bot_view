@@ -10,11 +10,16 @@
 
   Sekali di awal (pasang browser + alat geser window):
 
-      sudo apt install chromium-browser wmctrl
+      sudo apt install chromium-browser wmctrl python3-venv
 
       chromium-browser  -> window stream terisolasi   (firefox juga boleh)
       wmctrl            -> menempatkan window ke monitor yang benar
+      python3-venv      -> tempat dependency dipasang (lihat catatan bawah)
       python3           -> sudah ada bawaan Lubuntu, tidak perlu dipasang
+
+      Python bawaan Debian/Ubuntu datang tanpa pip dan menolak dipasangi
+      paket (PEP 668). Jadi run.py bikin folder .venv sendiri di dalam
+      proyek dan memasang dependency di situ. Tidak perlu sudo pip.
 
   Menjalankan:
 
@@ -121,6 +126,13 @@
       Linux : pakai python3, bukan python.
       Windows: pasang ulang Python dan CENTANG "Add Python to PATH".
               Atau pakai PlaylistStudio.exe yang tidak butuh Python.
+
+  "No module named pip" / "externally-managed-environment"  (Linux)
+      Normal. Python sistem Debian/Ubuntu memang begitu. run.py otomatis
+      pindah ke .venv proyek dan memasang dependency di sana.
+      Kalau yang muncul "GAGAL membuat virtualenv", pasang dulu sekali:
+          sudo apt install python3-venv python3-pip
+      JANGAN pakai sudo pip install - tidak perlu dan bisa merusak sistem.
 
   Video jalan tapi berat / patah-patah (mini PC spek kecil)
       1. JANGAN centang Fullscreen. YouTube memilih resolusi dari ukuran

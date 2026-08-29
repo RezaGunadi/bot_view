@@ -24,6 +24,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import sysconfig
 import threading
 import webbrowser
 from pathlib import Path
@@ -54,16 +55,43 @@ REQUIRED = {
 }
 
 
-def ensure_deps() -> bool:
-    """Install dependency yang belum ada. Yang sudah terpasang dilewati."""
-    missing = [pkg for mod, pkg in REQUIRED.items() if importlib.util.find_spec(mod) is None]
-    if not missing:
-        print(f"[deps] {len(REQUIRED)} dependency sudah terpasang — skip.")
-        return True
+VENV_DIR = BASE_DIR / ".venv"
+# Penanda proses anak di dalam .venv — supaya tidak bootstrap berulang tanpa henti.
+BOOTSTRAP_ENV = "PLAYLIST_STUDIO_BOOTSTRAPPED"
 
-    print(f"[deps] Kurang {len(missing)}: {', '.join(missing)}")
+
+def _venv_python() -> Path:
+    """Interpreter di dalam .venv proyek."""
+    if os.name == "nt":
+        return VENV_DIR / "Scripts" / "python.exe"
+    return VENV_DIR / "bin" / "python"
+
+
+def _in_project_venv() -> bool:
+    try:
+        return Path(sys.executable).resolve() == _venv_python().resolve()
+    except OSError:
+        return False
+
+
+def _missing_packages() -> list:
+    return [pkg for mod, pkg in REQUIRED.items() if importlib.util.find_spec(mod) is None]
+
+
+def _has_pip(python: str) -> bool:
+    return subprocess.call([python, "-m", "pip", "--version"],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
+
+
+def _externally_managed() -> bool:
+    """PEP 668: Debian/Ubuntu menandai Python sistem sebagai terlarang untuk pip."""
+    return (Path(sysconfig.get_path("stdlib")) / "EXTERNALLY-MANAGED").exists()
+
+
+def _install_into(python: str, missing: list) -> bool:
+    """Pasang paket yang kurang memakai pip milik interpreter `python`."""
     print("[deps] Memasang sekarang (sekali saja, run berikutnya langsung skip)...")
-    cmd = [sys.executable, "-m", "pip", "install", "--disable-pip-version-check", *missing]
+    cmd = [python, "-m", "pip", "install", "--disable-pip-version-check", *missing]
     if subprocess.call(cmd) != 0:
         print("\n[deps] GAGAL memasang dependency.")
         print("       Coba manual:  " + " ".join(cmd))
@@ -76,6 +104,70 @@ def ensure_deps() -> bool:
         return False
     print("[deps] Selesai.")
     return True
+
+
+def _relaunch_in_venv() -> bool:
+    """Bikin .venv lalu jalankan ulang run.py di dalamnya.
+
+    Dipakai kalau Python sistem tidak bisa dipasangi paket — kondisi normal di
+    Debian/Ubuntu, yang python3-nya datang tanpa pip dan sejak PEP 668 memang
+    menolak ditulisi. Tidak perlu sudo, tidak mengotori Python sistem.
+    """
+    if os.environ.get(BOOTSTRAP_ENV):
+        # Sudah pernah dilempar ke .venv tapi tetap kurang — jangan berputar.
+        print(f"[deps] Sudah lewat {VENV_DIR.name} tapi dependency masih kurang.")
+        print(f"       Hapus folder {VENV_DIR} lalu jalankan lagi.")
+        return False
+
+    python = _venv_python()
+    if not python.exists():
+        print(f"[deps] Python ini tidak bisa dipasangi paket. Membuat {VENV_DIR.name}...")
+        rc = subprocess.call([sys.executable, "-m", "venv", str(VENV_DIR)])
+        if rc != 0 or not python.exists():
+            print("\n[deps] GAGAL membuat virtualenv.")
+            if sys.platform.startswith("linux"):
+                print("       Pasang dulu paketnya, sekali saja:")
+                print("           sudo apt install python3-venv python3-pip")
+            print(f"       Lalu jalankan lagi: {sys.executable} {Path(__file__).name}")
+            return False
+
+    print(f"[deps] Menjalankan ulang lewat {VENV_DIR.name}...")
+    env = dict(os.environ)
+    env[BOOTSTRAP_ENV] = "1"
+    cmd = [str(python), str(BASE_DIR / "run.py"), *sys.argv[1:]]
+    if os.name == "posix":
+        # Ganti proses ini supaya Ctrl+C tetap langsung mengenai server.
+        os.execve(str(python), cmd, env)
+    raise SystemExit(subprocess.call(cmd, env=env))
+
+
+def ensure_deps() -> bool:
+    """Install dependency yang belum ada. Yang sudah terpasang dilewati.
+
+    Urutan usaha: pasang langsung ke Python yang sedang jalan; kalau Python itu
+    tidak boleh/tidak bisa ditulisi, pindah ke .venv proyek.
+    """
+    missing = _missing_packages()
+    if not missing:
+        print(f"[deps] {len(REQUIRED)} dependency sudah terpasang — skip.")
+        return True
+
+    print(f"[deps] Kurang {len(missing)}: {', '.join(missing)}")
+
+    # Sudah di dalam .venv proyek — di sinilah tempatnya, tidak ada fallback lagi.
+    if _in_project_venv():
+        return _install_into(sys.executable, missing)
+
+    if _externally_managed():
+        print("[deps] Python sistem ditandai externally-managed (PEP 668).")
+    elif not _has_pip(sys.executable):
+        print("[deps] Python ini tidak punya pip.")
+    elif _install_into(sys.executable, missing):
+        return True
+    else:
+        print("[deps] Gagal memasang langsung, coba lewat .venv...")
+
+    return _relaunch_in_venv()
 
 
 def _startup_shortcut() -> Path:
@@ -179,9 +271,11 @@ def main():
     ap.add_argument("--reload", action="store_true", help="auto-reload untuk development")
     args = ap.parse_args()
 
-    print("=" * 62)
-    print("  Playlist Studio - multi playlist, multi stream, lokal & privat")
-    print("=" * 62)
+    # Proses induk sudah mencetak banner sebelum melempar ke .venv.
+    if not os.environ.get(BOOTSTRAP_ENV):
+        print("=" * 62)
+        print("  Playlist Studio - multi playlist, multi stream, lokal & privat")
+        print("=" * 62)
 
     # --- 1. Dependency: install yang kurang, skip yang sudah ada.
     #     Versi .exe sudah membawa semuanya, jadi langkah ini dilewati.
