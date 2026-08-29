@@ -8,30 +8,37 @@
  1. LUBUNTU / LINUX
 -------------------------------------------------------------------------------
 
-  Sekali di awal (pasang browser + alat geser window):
+  Sekali di awal - satu perintah, semuanya dipasang:
 
-      sudo apt install chromium-browser wmctrl python3-venv
+      bash setup-linux.sh
 
-      chromium-browser  -> window stream terisolasi   (firefox juga boleh)
-      wmctrl            -> menempatkan window ke monitor yang benar
-      python3-venv      -> tempat dependency dipasang (lihat catatan bawah)
-      python3           -> sudah ada bawaan Lubuntu, tidak perlu dipasang
+      Yang diurus sekaligus:
+          python3 (3.10+)   kalau belum ada / masih terlalu lama
+          python3-venv      wadah dependency Python
+          chromium/firefox  window stream terisolasi
+          wmctrl            menempatkan window ke monitor yang benar
+          xrandr            mendeteksi daftar monitor
+          dependency        dipasang ke folder .venv di dalam proyek
 
-      Python bawaan Debian/Ubuntu datang tanpa pip dan menolak dipasangi
-      paket (PEP 668). Jadi run.py bikin folder .venv sendiri di dalam
-      proyek dan memasang dependency di situ. Tidak perlu sudo pip.
+      Butuh internet sekali dan password sudo (untuk paket sistem saja).
+      Aman diulang - yang sudah ada dilewati.
 
   Menjalankan:
 
-      python3 run.py
+      ./start.sh
 
-      Dependency Python dipasang sendiri saat run pertama (butuh internet
-      sekali). Run berikutnya langsung skip.
+      Sama saja dengan python3 run.py - run.py otomatis memakai .venv
+      yang tadi dibuat. Run berikutnya langsung jalan, tidak memasang
+      apa-apa lagi.
+
+      Kenapa .venv: python3 bawaan Debian/Ubuntu datang tanpa pip dan
+      menolak dipasangi paket (PEP 668). Jadi dependency ditaruh di
+      folder proyek, bukan di Python sistem. Tidak perlu sudo pip.
 
   Supaya nyala sendiri tiap mini PC dihidupkan:
 
-      python3 run.py --install-autostart
-      python3 run.py --remove-autostart      (kalau mau dibatalkan)
+      ./start.sh --install-autostart
+      ./start.sh --remove-autostart          (kalau mau dibatalkan)
 
   PENTING: pakai sesi X11, JANGAN Wayland.
   Deteksi monitor (xrandr) dan penempatan window (wmctrl) jalan lewat X11.
@@ -47,11 +54,12 @@
 
       Lubuntu                              Windows
       -----------------------------------  -----------------------------------
-      sudo apt install chromium-browser    pasang Chrome/Edge/Brave/Firefox
-                                           seperti biasa (installer .exe)
-      sudo apt install wmctrl              tidak perlu - sudah bawaan Windows
+      bash setup-linux.sh                  pasang Python + Chrome/Edge/
+                                           Brave/Firefox seperti biasa
+                                           (installer .exe). wmctrl tidak
+                                           perlu - sudah bawaan Windows.
 
-      python3 run.py                       python run.py
+      ./start.sh                           python run.py
                                            atau klik 2x start.bat
                                            atau klik 2x PlaylistStudio.exe
 
@@ -128,10 +136,10 @@
               Atau pakai PlaylistStudio.exe yang tidak butuh Python.
 
   "No module named pip" / "externally-managed-environment"  (Linux)
-      Normal. Python sistem Debian/Ubuntu memang begitu. run.py otomatis
-      pindah ke .venv proyek dan memasang dependency di sana.
-      Kalau yang muncul "GAGAL membuat virtualenv", pasang dulu sekali:
-          sudo apt install python3-venv python3-pip
+      Normal. Python sistem Debian/Ubuntu memang begitu. Jalankan:
+          bash setup-linux.sh
+      Itu membuat .venv dan memasang dependency di sana. Kalau kamu
+      sudah menjalankannya, run.py juga pindah ke .venv sendiri.
       JANGAN pakai sudo pip install - tidak perlu dan bisa merusak sistem.
 
   Video jalan tapi berat / patah-patah (mini PC spek kecil)

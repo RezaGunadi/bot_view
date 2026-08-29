@@ -74,8 +74,16 @@ mulai dari kosong.
 Jalan di Linux juga, dan untuk mini PC berspek kecil ini pilihan bagus.
 
 ```bash
+bash setup-linux.sh   # sekali saja - pasang Python, browser, wmctrl, dependency
+./start.sh            # jalankan
+```
+
+`setup-linux.sh` aman diulang: yang sudah terpasang dilewati. Kalau lebih suka
+manual, padanannya:
+
+```bash
 sudo apt install python3 python3-venv chromium-browser wmctrl   # firefox juga boleh
-python3 run.py
+python3 run.py        # dependency-nya dipasang sendiri ke .venv
 ```
 
 | Paket | Untuk apa | Wajib? |
@@ -94,8 +102,8 @@ stream akan menumpuk di satu monitor.
 Autostart pakai XDG (dihormati LXQt, XFCE, GNOME, KDE):
 
 ```bash
-python3 run.py --install-autostart    # bikin ~/.config/autostart/playliststudio.desktop
-python3 run.py --remove-autostart
+./start.sh --install-autostart    # bikin ~/.config/autostart/playliststudio.desktop
+./start.sh --remove-autostart
 ```
 
 **Kalau mau versi exe di Linux**, `build_exe.py` harus dijalankan **di komputer Linux itu**

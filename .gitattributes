@@ -1,0 +1,2 @@
+# Skrip shell wajib LF - CRLF bikin shebang gagal di Linux.
+*.sh text eol=lf
