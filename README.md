@@ -74,8 +74,16 @@ mulai dari kosong.
 Jalan di Linux juga, dan untuk mini PC berspek kecil ini pilihan bagus.
 
 ```bash
-bash setup-linux.sh   # sekali saja - pasang Python, browser, wmctrl, dependency
-./start.sh            # jalankan
+./start.sh
+```
+
+Cuma itu. Run pertama memanggil `setup-linux.sh` sendiri — memasang Python 3.10+,
+browser, `wmctrl`, `xrandr`, lalu dependency Python ke `.venv` di dalam folder ini.
+Run berikutnya langsung jalan. Setupnya juga boleh dipanggil terpisah dan aman
+diulang:
+
+```bash
+bash setup-linux.sh
 ```
 
 `setup-linux.sh` aman diulang: yang sudah terpasang dilewati. Kalau lebih suka

@@ -8,7 +8,8 @@
  1. LUBUNTU / LINUX
 -------------------------------------------------------------------------------
 
-  Sekali di awal - satu perintah, semuanya dipasang:
+  Sekali di awal - satu perintah, semuanya dipasang.
+  (Boleh dilewati: ./start.sh memanggil ini sendiri di run pertama.)
 
       bash setup-linux.sh
 
@@ -27,9 +28,9 @@
 
       ./start.sh
 
-      Sama saja dengan python3 run.py - run.py otomatis memakai .venv
-      yang tadi dibuat. Run berikutnya langsung jalan, tidak memasang
-      apa-apa lagi.
+      Ini satu-satunya perintah yang perlu diingat. Kalau .venv belum
+      ada, setup-linux.sh dipanggil otomatis dulu. Run berikutnya
+      langsung jalan, tidak memasang apa-apa lagi.
 
       Kenapa .venv: python3 bawaan Debian/Ubuntu datang tanpa pip dan
       menolak dipasangi paket (PEP 668). Jadi dependency ditaruh di
