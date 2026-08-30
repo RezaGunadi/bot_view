@@ -128,6 +128,33 @@ def _apt_venv_hint() -> None:
     print(f"       Kalau mau manual:  sudo apt install {tag}-venv")
 
 
+def _offer_setup_script() -> None:
+    """Tawarkan menjalankan setup-linux.sh - hanya skrip itu yang boleh apt.
+
+    run.py tidak pernah memanggil sudo diam-diam. Pertanyaannya juga cuma
+    muncul kalau ada orang di depan terminal yang bisa menjawab; di autostart
+    atau lewat pipe, langkah ini dilewati.
+    """
+    script = BASE_DIR / "setup-linux.sh"
+    if not sys.platform.startswith("linux") or not script.exists():
+        return
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        return
+    print()
+    try:
+        answer = input(f"[deps] Jalankan {script.name} sekarang? (butuh sudo) [y/N] ")
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return
+    if answer.strip().lower() not in ("y", "ya", "yes"):
+        return
+    print()
+    try:
+        os.execvp("bash", ["bash", str(script)])
+    except OSError as e:
+        print(f"[deps] Tidak bisa menjalankan bash: {e}")
+
+
 def _install_into(python: str, missing: list) -> bool:
     """Pasang paket yang kurang memakai pip milik interpreter `python`."""
     print("[deps] Memasang sekarang (sekali saja, run berikutnya langsung skip)...")
@@ -172,6 +199,7 @@ def _make_venv() -> bool:
         print()
         print("[deps] GAGAL membuat virtualenv yang lengkap.")
         _apt_venv_hint()
+        _offer_setup_script()
         return False
     return True
 
@@ -223,6 +251,7 @@ def ensure_deps() -> bool:
             print(f"[deps] {VENV_DIR.name} ini tidak punya pip - venv-nya cacat.")
             print(f"       Hapus dulu:  rm -rf {VENV_DIR}")
             _apt_venv_hint()
+            _offer_setup_script()
             return False
         return _install_into(sys.executable, missing)
 

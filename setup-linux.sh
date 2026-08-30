@@ -104,6 +104,12 @@ if [ -z "$BROWSER" ]; then
 fi
 if [ -n "$BROWSER" ]; then
     info "Pakai: $BROWSER"
+    if [ "$BROWSER" = "firefox" ]; then
+        info "Firefox didukung penuh - profil tiap stream diisolasi lewat -profile,"
+        info "dan window-nya ditempatkan lewat wmctrl."
+        info "Chromium menempatkan window sedikit lebih rapi karena punya flag posisi"
+        info "sendiri. Kalau mau:  sudo apt install chromium"
+    fi
 else
     info "PERINGATAN: tidak ada browser yang terpasang. Window stream tidak akan"
     info "            terbuka. Pasang manual: sudo apt install chromium"
