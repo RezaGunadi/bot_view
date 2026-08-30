@@ -40,15 +40,38 @@ fi
 # apt menolak memasang apa pun selama masih ada paket yang tersangkut dari
 # operasi sebelumnya - dan penyebabnya biasanya di luar proyek ini. Lebih baik
 # ketahuan di awal daripada muncul sebagai "gagal memasang python3-venv".
-if [ -n "$($SUDO dpkg --audit 2>/dev/null)" ]; then
-    say "PERINGATAN: ada paket yang belum beres di sistem ini"
+if [ -z "${PLAYLIST_STUDIO_IGNORE_DPKG:-}" ] && [ -n "$($SUDO dpkg --audit 2>/dev/null)" ]; then
+    say "Paket sistem belum beres - apt tidak bisa dipakai dulu"
     $SUDO dpkg --audit 2>/dev/null | sed 's/^/    /'
+
+    # Penyebab tersering di mesin desktop: /etc/default/grub di-source sebagai
+    # skrip shell, jadi satu baris nyasar bikin update-grub gagal, yang bikin
+    # post-removal script paket kernel gagal, yang menyangkutkan seluruh dpkg.
+    grub_junk=""
+    if [ -f /etc/default/grub ]; then
+        grub_junk="$(grep -nvE '^[[:space:]]*($|#|[A-Za-z_][A-Za-z0-9_]*=)' /etc/default/grub || true)"
+    fi
+    if [ -n "$grub_junk" ]; then
+        info ""
+        info "Ketemu baris tidak wajar di /etc/default/grub:"
+        echo "$grub_junk" | sed 's/^/        /'
+        info ""
+        info "File itu dibaca sebagai skrip shell, jadi baris seperti itu bikin"
+        info "update-grub gagal - dan itulah yang menyangkutkan dpkg. Perbaiki:"
+        info "    sudo cp /etc/default/grub /etc/default/grub.bak"
+        info "    sudo nano /etc/default/grub      # hapus baris di atas"
+        info "    sudo dpkg --configure -a"
+    else
+        info ""
+        info "Perbaiki dulu:"
+        info "    sudo dpkg --configure -a"
+        info "    sudo apt -f install"
+    fi
     info ""
-    info "Selama itu belum dibereskan, semua apt install akan gagal. Perbaiki:"
-    info "    sudo dpkg --configure -a"
-    info "    sudo apt -f install"
-    info "Lalu jalankan lagi skrip ini."
-    info ""
+    die "Berhenti di sini - kalau diteruskan, semua apt install pasti gagal dan
+       pesan ini akan tertimbun output apt. Bereskan dulu, lalu ulangi:
+           bash setup-linux.sh
+       (Kalau yakin ini tidak menghalangi: PLAYLIST_STUDIO_IGNORE_DPKG=1 bash setup-linux.sh)"
 fi
 
 APT_UPDATED=0
