@@ -432,6 +432,51 @@ def _reset_db(db):
         print(f"[db] Database lama dibackup ke {backup} lalu dihapus.")
 
 
+def _owner_of(path) -> str:
+    """"user:group" pemilik sebuah path, kosong kalau tidak bisa dibaca."""
+    try:
+        import grp
+        import pwd
+
+        st = path.stat()
+        return f"{pwd.getpwuid(st.st_uid).pw_name}:{grp.getgrgid(st.st_gid).gr_name}"
+    except Exception:
+        return ""
+
+
+def _check_data_writable(db) -> None:
+    """Pastikan folder data bisa ditulis sebelum SQLite gagal dengan traceback.
+
+    Penyebab tersering: proyek ini pernah sekali dijalankan sebagai root, jadi
+    data/ dan playlist.db berpindah kepemilikan ke root - dan sesudah itu user
+    biasa cuma dapat "attempt to write a readonly database", pesan yang sama
+    sekali tidak menyebut kepemilikan file.
+    """
+    target = db.DB_PATH if db.DB_PATH.exists() else db.DATA_DIR
+    while not target.exists() and target != target.parent:
+        target = target.parent
+    if os.access(target, os.W_OK):
+        return
+
+    print()
+    print(f"[db] BERHENTI: tidak bisa menulis ke {target}")
+    owner = _owner_of(target)
+    if owner:
+        print(f"     Pemiliknya sekarang: {owner}")
+    print()
+    print("     Biasanya karena proyek ini pernah dijalankan dengan sudo.")
+    print("     Kembalikan kepemilikannya ke akunmu:")
+    try:
+        import pwd
+
+        me = pwd.getpwuid(os.getuid()).pw_name
+    except Exception:
+        me = os.environ.get("USER", "namauser")
+    print(f"         sudo chown -R {me}: {BASE_DIR}")
+    print()
+    sys.exit(1)
+
+
 def main():
     ap = argparse.ArgumentParser(description="Playlist Studio runner")
     ap.add_argument("--host", default=os.getenv("HOST", "127.0.0.1"))
@@ -470,6 +515,8 @@ def main():
     if args.install_autostart or args.remove_autostart:
         install_autostart(remove=args.remove_autostart)
         return
+
+    _check_data_writable(db)
 
     if args.reset_db:
         _reset_db(db)
