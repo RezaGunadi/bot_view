@@ -29,10 +29,18 @@ if [ ! -t 1 ] && [ -z "${PLAYLIST_STUDIO_NO_TERMINAL:-}" ] && [ -n "${DISPLAY:-}
     # Tidak ada emulator terminal yang dikenali - lanjut saja tanpa terminal.
 fi
 
+echo "[start] Playlist Studio - $(pwd)"
+
+# Sehat = ada DAN pip-nya jalan. Venv yang dibuat waktu python3-venv belum
+# lengkap punya bin/python tapi tanpa pip, dan itu bukan venv yang bisa dipakai.
+venv_ready() {
+    [ -x .venv/bin/python ] && .venv/bin/python -m pip --version >/dev/null 2>&1
+}
+
 # Belum pernah disetup -> pasang dulu. setup-linux.sh berhenti sendiri dengan
 # pesan yang jelas kalau ada yang gagal, dan `set -e` di sini ikut berhenti.
-if [ ! -x .venv/bin/python ] && [ -f setup-linux.sh ]; then
-    echo "[start] .venv belum ada - menjalankan setup-linux.sh dulu (sekali saja)."
+if ! venv_ready && [ -f setup-linux.sh ]; then
+    echo "[start] .venv belum siap - menjalankan setup-linux.sh dulu (sekali saja)."
     bash setup-linux.sh
 fi
 

@@ -91,9 +91,36 @@ def _has_pip(python: str) -> bool:
                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
 
 
+def _try_ensurepip(python: str) -> bool:
+    """Coba pulihkan pip di venv yang terlanjur terbentuk tanpa pip."""
+    subprocess.call([python, "-m", "ensurepip", "--default-pip"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return _has_pip(python)
+
+
+def _venv_is_broken() -> bool:
+    """.venv-nya ada, tapi tidak bisa dipakai memasang apa pun.
+
+    Terjadi kalau `python -m venv` sempat dijalankan saat paket python3-venv
+    belum lengkap: foldernya terbentuk dan bin/python-nya ada, tapi pip tidak
+    pernah ikut. Tanpa pemeriksaan ini, run berikutnya melihat bin/python lalu
+    masuk ke venv cacat itu dan gagal di tempat yang membingungkan.
+    """
+    python = _venv_python()
+    if not python.exists():
+        return False
+    return not _has_pip(str(python)) and not _try_ensurepip(str(python))
+
+
 def _externally_managed() -> bool:
     """PEP 668: Debian/Ubuntu menandai Python sistem sebagai terlarang untuk pip."""
     return (Path(sysconfig.get_path("stdlib")) / "EXTERNALLY-MANAGED").exists()
+
+
+def _apt_venv_hint() -> None:
+    if sys.platform.startswith("linux"):
+        print("       Pasang dulu paketnya, sekali saja:")
+        print("           sudo apt install python3-venv python3-pip")
 
 
 def _install_into(python: str, missing: list) -> bool:
@@ -101,7 +128,8 @@ def _install_into(python: str, missing: list) -> bool:
     print("[deps] Memasang sekarang (sekali saja, run berikutnya langsung skip)...")
     cmd = [python, "-m", "pip", "install", "--disable-pip-version-check", *missing]
     if subprocess.call(cmd) != 0:
-        print("\n[deps] GAGAL memasang dependency.")
+        print()
+        print("[deps] GAGAL memasang dependency.")
         # Di Debian/Ubuntu, menyuruh orang menjalankan pip manual justru
         # menyesatkan: pip-nya memang tidak ada, dan PEP 668 juga menolaknya.
         if sys.platform.startswith("linux"):
@@ -121,31 +149,47 @@ def _install_into(python: str, missing: list) -> bool:
     return True
 
 
-def _relaunch_in_venv() -> bool:
-    """Bikin .venv lalu jalankan ulang run.py di dalamnya.
+def _make_venv() -> bool:
+    """Bikin .venv yang lengkap. Yang cacat dibuang dulu."""
+    if VENV_DIR.exists():
+        if not (VENV_DIR / "pyvenv.cfg").exists():
+            print(f"[deps] {VENV_DIR} sudah ada tapi bukan virtualenv.")
+            print("       Pindahkan atau hapus folder itu dulu.")
+            return False
+        print(f"[deps] {VENV_DIR.name} yang lama tidak punya pip - dibuat ulang.")
+        shutil.rmtree(VENV_DIR, ignore_errors=True)
 
-    Dipakai kalau Python sistem tidak bisa dipasangi paket — kondisi normal di
+    print(f"[deps] Membuat {VENV_DIR.name}...")
+    rc = subprocess.call([sys.executable, "-m", "venv", str(VENV_DIR)])
+    python = _venv_python()
+    # rc==0 saja tidak cukup: venv bisa terbentuk setengah jadi, tanpa pip.
+    if rc != 0 or not python.exists() or not _has_pip(str(python)):
+        print()
+        print("[deps] GAGAL membuat virtualenv yang lengkap.")
+        _apt_venv_hint()
+        print(f"       Lalu jalankan lagi: {sys.executable} {Path(__file__).name}")
+        return False
+    return True
+
+
+def _relaunch_in_venv() -> bool:
+    """Pastikan .venv sehat, lalu jalankan ulang run.py di dalamnya.
+
+    Dipakai kalau Python sistem tidak bisa dipasangi paket - kondisi normal di
     Debian/Ubuntu, yang python3-nya datang tanpa pip dan sejak PEP 668 memang
     menolak ditulisi. Tidak perlu sudo, tidak mengotori Python sistem.
     """
     if os.environ.get(BOOTSTRAP_ENV):
-        # Sudah pernah dilempar ke .venv tapi tetap kurang — jangan berputar.
+        # Sudah pernah dilempar ke .venv tapi tetap kurang - jangan berputar.
         print(f"[deps] Sudah lewat {VENV_DIR.name} tapi dependency masih kurang.")
         print(f"       Hapus folder {VENV_DIR} lalu jalankan lagi.")
         return False
 
-    python = _venv_python()
-    if not python.exists():
-        print(f"[deps] Python ini tidak bisa dipasangi paket. Membuat {VENV_DIR.name}...")
-        rc = subprocess.call([sys.executable, "-m", "venv", str(VENV_DIR)])
-        if rc != 0 or not python.exists():
-            print("\n[deps] GAGAL membuat virtualenv.")
-            if sys.platform.startswith("linux"):
-                print("       Pasang dulu paketnya, sekali saja:")
-                print("           sudo apt install python3-venv python3-pip")
-            print(f"       Lalu jalankan lagi: {sys.executable} {Path(__file__).name}")
+    if not _venv_python().exists() or _venv_is_broken():
+        if not _make_venv():
             return False
 
+    python = _venv_python()
     print(f"[deps] Menjalankan ulang lewat {VENV_DIR.name}...")
     env = dict(os.environ)
     env[BOOTSTRAP_ENV] = "1"
@@ -164,13 +208,19 @@ def ensure_deps() -> bool:
     """
     missing = _missing_packages()
     if not missing:
-        print(f"[deps] {len(REQUIRED)} dependency sudah terpasang — skip.")
+        print(f"[deps] {len(REQUIRED)} dependency sudah terpasang - skip.")
         return True
 
     print(f"[deps] Kurang {len(missing)}: {', '.join(missing)}")
 
-    # Sudah di dalam .venv proyek — di sinilah tempatnya, tidak ada fallback lagi.
+    # Sudah di dalam .venv proyek - di sinilah tempatnya, tidak ada fallback lagi.
     if _in_project_venv():
+        if not _has_pip(sys.executable) and not _try_ensurepip(sys.executable):
+            print(f"[deps] {VENV_DIR.name} ini tidak punya pip - venv-nya cacat.")
+            print(f"       Hapus dulu:  rm -rf {VENV_DIR}")
+            _apt_venv_hint()
+            print("       Lalu jalankan lagi:  bash setup-linux.sh")
+            return False
         return _install_into(sys.executable, missing)
 
     if _externally_managed():

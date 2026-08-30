@@ -82,8 +82,8 @@ info "Pakai: $PY ($("$PY" -c 'import sys; print(".".join(map(str, sys.version_in
 # python3 bawaan Debian/Ubuntu datang tanpa pip dan tanpa ensurepip; keduanya
 # ada di paket terpisah. Sejak PEP 668 Python sistem juga menolak ditulisi pip,
 # jadi .venv memang satu-satunya jalur yang benar di sini.
+PYTAG="$("$PY" -c 'import sys; print("python%d.%d" % sys.version_info[:2])')"
 if ! "$PY" -c 'import venv, ensurepip' >/dev/null 2>&1; then
-    PYTAG="$("$PY" -c 'import sys; print("python%d.%d" % sys.version_info[:2])')"
     say "Memasang modul venv ($PYTAG-venv)"
     apt_install "${PYTAG}-venv" || apt_install python3-venv \
         || die "Tidak bisa memasang modul venv. Coba manual:
@@ -126,11 +126,21 @@ fi
 
 # --- 5. Dependency Python di dalam .venv --------------------------------------
 say "Menyiapkan .venv"
+# Ada bin/python saja belum tentu sehat: kalau venv sempat dibuat waktu paket
+# python3-venv belum lengkap, foldernya jadi tapi pip-nya tidak pernah ikut.
+if [ -x .venv/bin/python ] && ! .venv/bin/python -m pip --version >/dev/null 2>&1; then
+    info ".venv lama tidak punya pip - dibuang dan dibuat ulang."
+    rm -rf .venv
+fi
 if [ ! -x .venv/bin/python ]; then
-    "$PY" -m venv .venv || die "Gagal membuat .venv. Coba: sudo apt install python3-venv"
+    "$PY" -m venv .venv || die "Gagal membuat .venv. Coba: sudo apt install ${PYTAG}-venv"
     info "Dibuat: $(pwd)/.venv"
 else
-    info "Sudah ada - dipakai lagi."
+    info "Sudah ada dan sehat - dipakai lagi."
+fi
+if ! .venv/bin/python -m pip --version >/dev/null 2>&1; then
+    die ".venv terbentuk tapi tanpa pip. Pasang paketnya lalu ulangi:
+       sudo apt install ${PYTAG}-venv"
 fi
 
 say "Memasang dependency Python"
