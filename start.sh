@@ -12,6 +12,23 @@ if [ -z "${BASH_VERSION:-}" ]; then exec bash "$0" "$@"; fi
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# Diklik dua kali dari file manager? Di Lubuntu, tombol "Execute" menjalankan
+# skrip TANPA terminal: semua output hilang dan layar seolah tidak bereaksi.
+# Kalau begitu, buka terminal sendiri supaya progres dan error kelihatan.
+if [ ! -t 1 ] && [ -z "${PLAYLIST_STUDIO_NO_TERMINAL:-}" ] && [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
+    self="$(pwd)/$(basename "$0")"
+    inner="$(printf '%q ' "$self" "$@")"
+    # Jaga terminal tetap terbuka setelah selesai, supaya pesan error terbaca.
+    post='; rc=$?; echo; read -r -p "Selesai. Tekan Enter untuk menutup..." _; exit $rc'
+    for term in x-terminal-emulator qterminal lxterminal xfce4-terminal mate-terminal konsole gnome-terminal xterm; do
+        if command -v "$term" >/dev/null 2>&1; then
+            export PLAYLIST_STUDIO_NO_TERMINAL=1
+            exec "$term" -e bash -c "$inner$post"
+        fi
+    done
+    # Tidak ada emulator terminal yang dikenali - lanjut saja tanpa terminal.
+fi
+
 # Belum pernah disetup -> pasang dulu. setup-linux.sh berhenti sendiri dengan
 # pesan yang jelas kalau ada yang gagal, dan `set -e` di sini ikut berhenti.
 if [ ! -x .venv/bin/python ] && [ -f setup-linux.sh ]; then

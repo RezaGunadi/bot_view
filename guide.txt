@@ -143,6 +143,13 @@
       sudah menjalankannya, run.py juga pindah ke .venv sendiri.
       JANGAN pakai sudo pip install - tidak perlu dan bisa merusak sistem.
 
+  Klik start.sh tapi layarnya diam saja, tidak ada jendela apa pun
+      Di file manager, tombol "Execute" menjalankan skrip TANPA terminal,
+      jadi semua pesannya hilang. Pilih "Execute in Terminal".
+      start.sh yang baru membuka terminal sendiri - kalau tetap diam,
+      berarti start.sh di komputermu masih versi lama: git pull dulu.
+      Cara paling pasti: buka terminal di folder ini, ketik  ./start.sh
+
   Video jalan tapi berat / patah-patah (mini PC spek kecil)
       1. JANGAN centang Fullscreen. YouTube memilih resolusi dari ukuran
          window - window kecil = video lebih ringan.

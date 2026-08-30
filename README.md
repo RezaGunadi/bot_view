@@ -77,6 +77,9 @@ Jalan di Linux juga, dan untuk mini PC berspek kecil ini pilihan bagus.
 ./start.sh
 ```
 
+Boleh juga diklik dua kali dari file manager — `start.sh` membuka terminalnya
+sendiri supaya progres dan error tetap kelihatan.
+
 Cuma itu. Run pertama memanggil `setup-linux.sh` sendiri — memasang Python 3.10+,
 browser, `wmctrl`, `xrandr`, lalu dependency Python ke `.venv` di dalam folder ini.
 Run berikutnya langsung jalan. Setupnya juga boleh dipanggil terpisah dan aman

@@ -94,7 +94,14 @@ def _install_into(python: str, missing: list) -> bool:
     cmd = [python, "-m", "pip", "install", "--disable-pip-version-check", *missing]
     if subprocess.call(cmd) != 0:
         print("\n[deps] GAGAL memasang dependency.")
-        print("       Coba manual:  " + " ".join(cmd))
+        # Di Debian/Ubuntu, menyuruh orang menjalankan pip manual justru
+        # menyesatkan: pip-nya memang tidak ada, dan PEP 668 juga menolaknya.
+        if sys.platform.startswith("linux"):
+            print("       Paling gampang, jalankan:  bash setup-linux.sh")
+            print("       Itu memasang semuanya sekali jalan: Python, browser,")
+            print("       wmctrl, lalu dependency ke .venv di dalam folder ini.")
+        else:
+            print("       Coba manual:  " + " ".join(cmd))
         return False
 
     importlib.invalidate_caches()
