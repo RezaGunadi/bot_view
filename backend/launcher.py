@@ -456,9 +456,13 @@ def relayout(monitor_index: int, monitors=None):
 
 
 # ------------------------------------------------------------------- launch
+def _running_as_root() -> bool:
+    return hasattr(os, "geteuid") and os.geteuid() == 0
+
+
 def _privacy_flags(profile_dir: Path) -> list[str]:
     """Flag yang bikin window ini 'bersih': profil sendiri, tanpa akun, tanpa telemetri."""
-    return [
+    flags = [
         f"--user-data-dir={profile_dir}",
         "--no-first-run",
         "--no-default-browser-check",
@@ -476,6 +480,13 @@ def _privacy_flags(profile_dir: Path) -> list[str]:
         "--password-store=basic",
         "--autoplay-policy=no-user-gesture-required",
     ]
+    # Chromium menolak jalan sebagai root selama sandbox-nya aktif
+    # (crbug.com/638180). Sandbox tetap menyala untuk pemakaian normal; hanya
+    # saat memang sudah terlanjur root flag ini dilepas, karena tanpa itu
+    # window stream tidak akan terbuka sama sekali.
+    if _running_as_root():
+        flags.append("--no-sandbox")
+    return flags
 
 
 def _seed_chromium_prefs(profile_dir: Path):

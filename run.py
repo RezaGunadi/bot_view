@@ -379,57 +379,59 @@ def _open_gui(url: str) -> None:
     webbrowser.open(url)
 
 
-def _check_not_root() -> None:
-    """Berhenti kalau dijalankan sebagai root.
+def _home_of(user: str):
+    """Home folder milik `user`, None kalau tidak ketemu."""
+    try:
+        import pwd
 
-    Bukan sekadar soal kerapian. Chromium menolak jalan sebagai root tanpa
-    --no-sandbox (crbug.com/638180), jadi window stream tidak akan pernah
-    terbuka - dan menambahkan flag itu berarti mematikan sandbox untuk halaman
-    yang kita muat, harga yang terlalu mahal untuk masalah yang solusinya cuma
-    "jangan pakai sudo".
+        return Path(pwd.getpwnam(user).pw_dir)
+    except Exception:
+        return None
+
+
+def _prepare_for_root() -> None:
+    """Kalau dijalankan sebagai root, benahi lingkungannya supaya tetap jalan.
+
+    Root sebetulnya tidak dibutuhkan, tapi memaksa berhenti tidak menolong
+    siapa pun yang memang sudah terlanjur menjalankannya begitu. Yang rusak di
+    bawah sudo ada tiga, dan ketiganya bisa dibetulkan:
+
+      - DISPLAY dan XAUTHORITY dibuang sudo, jadi tidak ada window yang bisa
+        dibuka dan X menolak klien yang tidak membawa cookie sesi;
+      - XDG_RUNTIME_DIR menunjuk /run/user/0 yang sering belum ada;
+      - Chromium menolak sandbox sebagai root (ditangani di launcher).
     """
-    if sys.platform == "win32" or not hasattr(os, "geteuid"):
-        return
-    if os.geteuid() != 0:
+    if sys.platform == "win32" or not hasattr(os, "geteuid") or os.geteuid() != 0:
         return
 
-    if os.environ.get("PLAYLIST_STUDIO_ALLOW_ROOT"):
-        print("[runner] PERINGATAN: jalan sebagai root (dipaksa lewat "
-              "PLAYLIST_STUDIO_ALLOW_ROOT).")
-        print("         Window stream Chromium tetap akan menolak terbuka;")
-        print("         Firefox jalan, tapi profilnya ditulis ke home root.")
-        return
+    print("[runner] Jalan sebagai root - menyesuaikan lingkungan.")
+    user = os.environ.get("SUDO_USER") or ""
+    home = _home_of(user) if user else None
 
-    user = os.environ.get("SUDO_USER")
-    print()
-    print("[runner] BERHENTI: jangan jalankan sebagai root.")
-    print()
-    print("  Chromium menolak jalan sebagai root, jadi window stream tidak akan")
-    print("  pernah terbuka - itulah pesan 'Running as root without --no-sandbox")
-    print("  is not supported'. Profil browser, autostart, dan database juga")
-    print("  ditulis ke home milik root, bukan home kamu.")
-    print()
-    if user:
-        print(f"  Kamu masuk lewat sudo dari akun '{user}'. Keluar dari sudo, lalu:")
-    else:
-        print("  Jalankan sebagai pemakai biasa:")
-    print("      ./start.sh")
-    print()
-    print("  Root memang tidak dibutuhkan: server-nya bind ke localhost, datanya")
-    print("  di folder proyek, autostart-nya ke ~/.config/ - semuanya milik user.")
-    print()
-    sys.exit(1)
+    if not os.environ.get("DISPLAY") and not os.environ.get("WAYLAND_DISPLAY"):
+        os.environ["DISPLAY"] = ":0"
+        print("         DISPLAY kosong -> dipakai :0")
 
+    if not os.environ.get("XAUTHORITY") and home is not None:
+        xauth = home / ".Xauthority"
+        if xauth.exists():
+            os.environ["XAUTHORITY"] = str(xauth)
+            print(f"         XAUTHORITY -> {xauth}")
 
-def _reset_db(db):
-    if db.DB_PATH.exists():
-        backup = db.DB_PATH.with_suffix(".db.bak")
-        shutil.copy2(db.DB_PATH, backup)
-        for suffix in ("", "-wal", "-shm"):
-            p = Path(str(db.DB_PATH) + suffix)
-            if p.exists():
-                p.unlink()
-        print(f"[db] Database lama dibackup ke {backup} lalu dihapus.")
+    runtime = os.environ.get("XDG_RUNTIME_DIR") or ""
+    if not runtime or not os.access(runtime, os.W_OK):
+        fallback = BASE_DIR / "data" / "runtime"
+        try:
+            fallback.mkdir(parents=True, exist_ok=True)
+            os.chmod(fallback, 0o700)
+            os.environ["XDG_RUNTIME_DIR"] = str(fallback)
+            print(f"         XDG_RUNTIME_DIR -> {fallback}")
+        except OSError as e:
+            print(f"         XDG_RUNTIME_DIR tidak bisa disiapkan: {e}")
+
+    if user and user != "root":
+        print(f"         Ingat: file yang ditulis jadi milik root, bukan '{user}'.")
+        print(f"         Kalau nanti mau jalan tanpa sudo:  sudo chown -R {user}: {BASE_DIR}")
 
 
 def _owner_of(path) -> str:
@@ -497,7 +499,7 @@ def main():
         print("  Playlist Studio - multi playlist, multi stream, lokal & privat")
         print("=" * 62)
 
-    _check_not_root()
+    _prepare_for_root()
 
     # --- 1. Dependency: install yang kurang, skip yang sudah ada.
     #     Versi .exe sudah membawa semuanya, jadi langkah ini dilewati.

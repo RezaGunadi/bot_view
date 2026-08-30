@@ -156,17 +156,22 @@
   "Running as root without --no-sandbox is not supported"
   "mkdir: cannot create directory '/run/user/0'"
   GUI-nya muncul sebagai teks berantakan di dalam terminal
-      Tiga-tiganya gejala yang sama: dijalankan sebagai root.
-        - Chromium menolak jalan sebagai root, window stream tidak terbuka.
-        - Tanpa DISPLAY (sudo membuangnya), Python cuma punya browser teks
-          untuk membuka GUI, jadi GUI-nya dirender di terminal.
-        - Profil browser, autostart, dan database masuk ke home root.
-      Jalankan TANPA sudo:  ./start.sh
-      Aplikasi ini tidak butuh root sama sekali - server-nya cuma localhost,
-      datanya di folder proyek, autostart-nya ke ~/.config/.
-      run.py sekarang menolak jalan sebagai root. Kalau memang terpaksa:
-          PLAYLIST_STUDIO_ALLOW_ROOT=1 ./start.sh
-      tapi Chromium tetap tidak mau terbuka - pakai Firefox.
+      Tiga gejala dari satu sebab: dijalankan sebagai root.
+      Sekarang run.py menanganinya sendiri, jadi lewat sudo pun tetap jalan:
+        - DISPLAY dipulihkan (:0) dan XAUTHORITY diambil dari home akun asal,
+          karena sudo membuang keduanya;
+        - XDG_RUNTIME_DIR dialihkan ke data/runtime kalau /run/user/0 tidak ada;
+        - Chromium diberi --no-sandbox, HANYA saat root. Jalan normal tetap
+          bersandbox penuh.
+
+      Tapi sadari akibatnya: semua file jadi milik root. Kalau nanti dijalankan
+      lagi tanpa sudo, muncul "attempt to write a readonly database".
+      Kembalikan kepemilikannya:
+          sudo chown -R $USER: /path/ke/bot_view
+
+      Tetap lebih baik tanpa sudo - aplikasi ini tidak butuh root sama sekali.
+      Server-nya cuma localhost, datanya di folder proyek, autostart ke
+      ~/.config/.
 
   Di Linux, start.bat jangan dipakai
       Itu file Windows. Klik dua kali di Linux cuma membukanya di editor.
