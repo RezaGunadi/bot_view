@@ -143,6 +143,16 @@
       sudah menjalankannya, run.py juga pindah ke .venv sendiri.
       JANGAN pakai sudo pip install - tidak perlu dan bisa merusak sistem.
 
+  apt gagal terus: "dpkg: error processing package ..." (Linux)
+      Ini bukan soal Playlist Studio. Ada paket lain di sistem yang
+      tersangkut, dan apt menolak memasang apa pun sampai itu beres.
+      Lihat penyebabnya di baris error tepat di atasnya, lalu:
+          sudo dpkg --configure -a
+          sudo apt -f install
+      Kalau yang disebut grub-mkconfig dan /etc/default/grub, berarti ada
+      baris nyasar di file itu - buka, buang barisnya, ulangi perintah di
+      atas. Baru setelah itu: bash setup-linux.sh
+
   Klik start.sh tapi layarnya diam saja, tidak ada jendela apa pun
       Di file manager, tombol "Execute" menjalankan skrip TANPA terminal,
       jadi semua pesannya hilang. Pilih "Execute in Terminal".

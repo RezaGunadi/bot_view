@@ -37,6 +37,20 @@ if [ "$(id -u)" -ne 0 ]; then
     info "Beberapa langkah butuh sudo - password mungkin diminta."
 fi
 
+# apt menolak memasang apa pun selama masih ada paket yang tersangkut dari
+# operasi sebelumnya - dan penyebabnya biasanya di luar proyek ini. Lebih baik
+# ketahuan di awal daripada muncul sebagai "gagal memasang python3-venv".
+if [ -n "$($SUDO dpkg --audit 2>/dev/null)" ]; then
+    say "PERINGATAN: ada paket yang belum beres di sistem ini"
+    $SUDO dpkg --audit 2>/dev/null | sed 's/^/    /'
+    info ""
+    info "Selama itu belum dibereskan, semua apt install akan gagal. Perbaiki:"
+    info "    sudo dpkg --configure -a"
+    info "    sudo apt -f install"
+    info "Lalu jalankan lagi skrip ini."
+    info ""
+fi
+
 APT_UPDATED=0
 apt_install() {
     if [ "$APT_UPDATED" -eq 0 ]; then
@@ -86,8 +100,16 @@ PYTAG="$("$PY" -c 'import sys; print("python%d.%d" % sys.version_info[:2])')"
 if ! "$PY" -c 'import venv, ensurepip' >/dev/null 2>&1; then
     say "Memasang modul venv ($PYTAG-venv)"
     apt_install "${PYTAG}-venv" || apt_install python3-venv \
-        || die "Tidak bisa memasang modul venv. Coba manual:
-       sudo apt install ${PYTAG}-venv"
+        || die "Tidak bisa memasang modul venv (${PYTAG}-venv).
+
+       Kalau di atas ada 'dpkg: error processing package', masalahnya bukan di
+       paket ini: ada paket lain yang tersangkut, dan apt menolak melanjutkan
+       apa pun sampai itu beres. Bereskan dulu:
+
+           sudo dpkg --configure -a
+           sudo apt -f install
+
+       Lalu ulangi:  bash setup-linux.sh"
 fi
 
 # --- 3. Browser untuk window stream -------------------------------------------
