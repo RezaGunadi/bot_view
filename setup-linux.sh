@@ -51,6 +51,8 @@ if [ -z "${PLAYLIST_STUDIO_IGNORE_DPKG:-}" ] && [ -n "$($SUDO dpkg --audit 2>/de
     if [ -f /etc/default/grub ]; then
         grub_junk="$(grep -nvE '^[[:space:]]*($|#|[A-Za-z_][A-Za-z0-9_]*=)' /etc/default/grub || true)"
     fi
+    # Selama baris nyasar itu masih ada, memperbaiki dpkg pun percuma: setiap
+    # operasi kernel akan gagal lagi di titik yang sama.
     if [ -n "$grub_junk" ]; then
         info ""
         info "Ketemu baris tidak wajar di /etc/default/grub:"
@@ -61,17 +63,41 @@ if [ -z "${PLAYLIST_STUDIO_IGNORE_DPKG:-}" ] && [ -n "$($SUDO dpkg --audit 2>/de
         info "    sudo cp /etc/default/grub /etc/default/grub.bak"
         info "    sudo nano /etc/default/grub      # hapus baris di atas"
         info "    sudo dpkg --configure -a"
-    else
         info ""
-        info "Perbaiki dulu:"
+        die "Berhenti di sini - selama baris itu ada, setiap apt install akan
+       gagal lagi di tempat yang sama. Bereskan dulu, lalu ulangi:
+           bash setup-linux.sh"
+    fi
+
+    # Tidak ada penyebab yang tersisa - biasanya cuma operasi yang tertunda dan
+    # tinggal dirampungkan. Dua perintah ini tidak memulai apa pun yang baru,
+    # hanya menyelesaikan yang sudah antre, tapi tetap butuh sudo - jadi
+    # ditanyakan dulu, dan defaultnya tidak.
+    info ""
+    fixnow=""
+    if [ -t 0 ] && [ -t 1 ]; then
+        printf '    Coba bereskan sekarang? (dpkg --configure -a lalu apt -f install) [y/N] '
+        read -r fixnow || fixnow=""
+    fi
+    case "$fixnow" in
+        y|Y|ya|Ya|YA|yes|Yes)
+            info ""
+            $SUDO dpkg --configure -a || true
+            $SUDO apt-get -f install -y || true
+            ;;
+    esac
+
+    if [ -n "$($SUDO dpkg --audit 2>/dev/null)" ]; then
+        info ""
+        info "Masih belum beres. Jalankan manual, lalu ulangi skrip ini:"
         info "    sudo dpkg --configure -a"
         info "    sudo apt -f install"
-    fi
-    info ""
-    die "Berhenti di sini - kalau diteruskan, semua apt install pasti gagal dan
-       pesan ini akan tertimbun output apt. Bereskan dulu, lalu ulangi:
-           bash setup-linux.sh
+        info ""
+        die "Berhenti di sini - kalau diteruskan, semua apt install pasti gagal dan
+       pesan ini akan tertimbun output apt.
        (Kalau yakin ini tidak menghalangi: PLAYLIST_STUDIO_IGNORE_DPKG=1 bash setup-linux.sh)"
+    fi
+    info "Sudah beres - lanjut."
 fi
 
 APT_UPDATED=0
