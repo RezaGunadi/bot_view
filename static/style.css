@@ -403,3 +403,5 @@ button.warn { color: var(--warn); border-color: #5c4a26; }
 button.warn:hover { background: #2a2113; }
 button.warn[hidden] { display: none; }
 #btn-rescan { padding: 3px 8px; color: var(--dim); }
+
+.chip.warn { color: var(--warn); border-color: #5c4a26; background: #2a2113; }

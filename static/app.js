@@ -108,6 +108,14 @@ async function refreshAll() {
     el.stats.appendChild(c);
   });
 
+  // Window yang tidak bisa ditempatkan akan saling menimpa. Itu kelihatan di
+  // layar tapi sebabnya tidak, jadi ditulis di tempat yang pasti terbaca.
+  if (mon.placement && !mon.placement.ok) {
+    const w = tag("span", "chip warn", "⚠ " + mon.placement.reason);
+    w.title = mon.placement.reason;
+    el.stats.appendChild(w);
+  }
+
   const b = mon.browser_name || "browser default";
   el.env.textContent = `${b} · ${state.monitors.length} monitor`;
   el.env.title = mon.browser || "Tidak ada Chrome/Edge/Brave/Firefox terdeteksi";

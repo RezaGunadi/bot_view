@@ -301,6 +301,7 @@ def api_monitors():
         "browser": info["path"] if info else None,
         "browser_name": info["name"] if info else None,
         "browser_family": info["family"] if info else None,
+        "placement": launcher.placement_status(),
     }
 
 

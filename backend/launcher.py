@@ -375,6 +375,31 @@ def _pilih_window(kandidat, hint: str):
 
 
 # --------------------------------------------------- monitor & tata letak
+def placement_status() -> dict:
+    """Bisakah window ditempatkan ke monitor yang dipilih?
+
+    Di Linux penempatan dikerjakan wmctrl lewat X11. Tanpa itu window dibiarkan
+    di posisi bawaan window manager - dan beberapa stream akan bertumpuk di
+    tempat yang sama. Sebelumnya keadaan ini cuma dicetak ke konsol server,
+    tempat yang justru tidak dilihat orang saat window-nya bertumpuk.
+    """
+    if sys.platform == "win32":
+        return {"ok": True, "reason": ""}
+
+    session = (os.getenv("XDG_SESSION_TYPE") or "").lower()
+    if session == "wayland" or (os.getenv("WAYLAND_DISPLAY") and not os.getenv("DISPLAY")):
+        return {"ok": False, "reason":
+                "Sesi ini Wayland. Penempatan window butuh X11 - semua stream akan "
+                "menumpuk di satu monitor. Logout, lalu pilih sesi X11/Xorg."}
+
+    if shutil.which("wmctrl") is None:
+        return {"ok": False, "reason":
+                "wmctrl belum terpasang, jadi window tidak bisa digeser ke monitornya "
+                "masing-masing dan akan saling menimpa. Pasang: sudo apt install wmctrl"}
+
+    return {"ok": True, "reason": ""}
+
+
 def resolve_monitor(wanted, monitors=None) -> dict:
     """Tentukan monitor yang benar-benar dipakai untuk sebuah stream.
 
