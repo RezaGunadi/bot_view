@@ -379,16 +379,46 @@ def _open_gui(url: str) -> None:
     webbrowser.open(url)
 
 
-def _warn_if_root() -> None:
-    """Aplikasi ini tidak butuh root, dan jadi salah tempat kalau dipaksa."""
+def _check_not_root() -> None:
+    """Berhenti kalau dijalankan sebagai root.
+
+    Bukan sekadar soal kerapian. Chromium menolak jalan sebagai root tanpa
+    --no-sandbox (crbug.com/638180), jadi window stream tidak akan pernah
+    terbuka - dan menambahkan flag itu berarti mematikan sandbox untuk halaman
+    yang kita muat, harga yang terlalu mahal untuk masalah yang solusinya cuma
+    "jangan pakai sudo".
+    """
     if sys.platform == "win32" or not hasattr(os, "geteuid"):
         return
     if os.geteuid() != 0:
         return
-    print("[runner] PERINGATAN: jalan sebagai root.")
-    print("         Tidak perlu root, dan akibatnya: profil browser, autostart,")
-    print("         serta file data ditulis ke home milik root - bukan home kamu.")
-    print("         Jalankan tanpa sudo:  ./start.sh")
+
+    if os.environ.get("PLAYLIST_STUDIO_ALLOW_ROOT"):
+        print("[runner] PERINGATAN: jalan sebagai root (dipaksa lewat "
+              "PLAYLIST_STUDIO_ALLOW_ROOT).")
+        print("         Window stream Chromium tetap akan menolak terbuka;")
+        print("         Firefox jalan, tapi profilnya ditulis ke home root.")
+        return
+
+    user = os.environ.get("SUDO_USER")
+    print()
+    print("[runner] BERHENTI: jangan jalankan sebagai root.")
+    print()
+    print("  Chromium menolak jalan sebagai root, jadi window stream tidak akan")
+    print("  pernah terbuka - itulah pesan 'Running as root without --no-sandbox")
+    print("  is not supported'. Profil browser, autostart, dan database juga")
+    print("  ditulis ke home milik root, bukan home kamu.")
+    print()
+    if user:
+        print(f"  Kamu masuk lewat sudo dari akun '{user}'. Keluar dari sudo, lalu:")
+    else:
+        print("  Jalankan sebagai pemakai biasa:")
+    print("      ./start.sh")
+    print()
+    print("  Root memang tidak dibutuhkan: server-nya bind ke localhost, datanya")
+    print("  di folder proyek, autostart-nya ke ~/.config/ - semuanya milik user.")
+    print()
+    sys.exit(1)
 
 
 def _reset_db(db):
@@ -422,7 +452,7 @@ def main():
         print("  Playlist Studio - multi playlist, multi stream, lokal & privat")
         print("=" * 62)
 
-    _warn_if_root()
+    _check_not_root()
 
     # --- 1. Dependency: install yang kurang, skip yang sudah ada.
     #     Versi .exe sudah membawa semuanya, jadi langkah ini dilewati.
