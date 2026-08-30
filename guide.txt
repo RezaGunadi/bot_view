@@ -153,6 +153,17 @@
       baris nyasar di file itu - buka, buang barisnya, ulangi perintah di
       atas. Baru setelah itu: bash setup-linux.sh
 
+  GUI-nya muncul sebagai teks berantakan di dalam terminal
+      Yang membuka itu browser teks (w3m/lynx/links), bukan browser
+      grafis. Terjadi kalau dijalankan lewat sudo: sudo membuang DISPLAY,
+      dan tanpa DISPLAY, Python cuma punya browser teks untuk dipilih.
+      Jalankan TANPA sudo:  ./start.sh
+      Aplikasi ini memang tidak butuh root sama sekali.
+
+  Di Linux, start.bat jangan dipakai
+      Itu file Windows. Klik dua kali di Linux cuma membukanya di editor.
+      Padanannya di Linux:  ./start.sh
+
   Klik start.sh tapi layarnya diam saja, tidak ada jendela apa pun
       Di file manager, tombol "Execute" menjalankan skrip TANPA terminal,
       jadi semua pesannya hilang. Pilih "Execute in Terminal".

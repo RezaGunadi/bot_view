@@ -343,6 +343,54 @@ def _autostart_linux(command: str, remove: bool):
     print("[autostart] Playlist Studio akan jalan sendiri tiap login.")
 
 
+def _open_gui(url: str) -> None:
+    """Buka GUI di browser grafis.
+
+    Tidak memakai webbrowser.open() begitu saja. Modul itu hanya mendaftarkan
+    browser grafis kalau DISPLAY/WAYLAND_DISPLAY terisi; kalau kosong - misalnya
+    saat dijalankan lewat sudo, yang membuang DISPLAY - satu-satunya yang
+    tersisa adalah browser teks (w3m/lynx/links), dan GUI-nya muncul sebagai
+    teks berantakan di dalam terminal.
+    """
+    if sys.platform.startswith("linux"):
+        if not (os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")):
+            print("[runner] Tidak ada sesi grafis (DISPLAY kosong) - GUI tidak dibuka otomatis.")
+            print(f"[runner] Buka sendiri di browser: {url}")
+            return
+
+        candidates = []
+        try:
+            from backend import launcher
+
+            exe = launcher.find_browser()
+            if exe:
+                candidates.append([exe, url])
+        except Exception:
+            pass
+        candidates.append(["xdg-open", url])
+
+        for cmd in candidates:
+            try:
+                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                return
+            except OSError:
+                continue
+
+    webbrowser.open(url)
+
+
+def _warn_if_root() -> None:
+    """Aplikasi ini tidak butuh root, dan jadi salah tempat kalau dipaksa."""
+    if sys.platform == "win32" or not hasattr(os, "geteuid"):
+        return
+    if os.geteuid() != 0:
+        return
+    print("[runner] PERINGATAN: jalan sebagai root.")
+    print("         Tidak perlu root, dan akibatnya: profil browser, autostart,")
+    print("         serta file data ditulis ke home milik root - bukan home kamu.")
+    print("         Jalankan tanpa sudo:  ./start.sh")
+
+
 def _reset_db(db):
     if db.DB_PATH.exists():
         backup = db.DB_PATH.with_suffix(".db.bak")
@@ -373,6 +421,8 @@ def main():
         print("=" * 62)
         print("  Playlist Studio - multi playlist, multi stream, lokal & privat")
         print("=" * 62)
+
+    _warn_if_root()
 
     # --- 1. Dependency: install yang kurang, skip yang sudah ada.
     #     Versi .exe sudah membawa semuanya, jadi langkah ini dilewati.
@@ -416,7 +466,7 @@ def main():
     # Dipakai penjadwal saat membuka window tanpa ada request masuk.
     os.environ["APP_BASE_URL"] = url.rstrip("/")
     if not args.no_browser:
-        threading.Timer(1.5, lambda: webbrowser.open(url)).start()
+        threading.Timer(1.5, lambda: _open_gui(url)).start()
     print(f"[runner] GUI  : {url}")
     print("[runner] Ctrl+C untuk berhenti (semua window stream ikut ditutup).")
 
