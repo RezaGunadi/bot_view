@@ -68,8 +68,16 @@ def _venv_python() -> Path:
 
 
 def _in_project_venv() -> bool:
+    """Apakah interpreter yang sedang jalan ini milik .venv proyek?
+
+    Membandingkan sys.prefix, bukan sys.executable: di Linux .venv/bin/python
+    hanyalah symlink ke interpreter sistem, jadi resolve() pada kedua sisi
+    menghasilkan path yang sama dan perbandingan executable selalu benar -
+    padahal yang jalan python sistem. Di dalam venv, sys.prefix menunjuk ke
+    folder venv itu sendiri; di luar, ke prefix sistem.
+    """
     try:
-        return Path(sys.executable).resolve() == _venv_python().resolve()
+        return Path(sys.prefix).resolve() == VENV_DIR.resolve()
     except OSError:
         return False
 
