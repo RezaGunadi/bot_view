@@ -118,9 +118,14 @@ def _externally_managed() -> bool:
 
 
 def _apt_venv_hint() -> None:
-    if sys.platform.startswith("linux"):
-        print("       Pasang dulu paketnya, sekali saja:")
-        print("           sudo apt install python3-venv python3-pip")
+    """Saran yang bisa langsung dijalankan saat modul venv belum lengkap."""
+    if not sys.platform.startswith("linux"):
+        return
+    # Debian menamai paketnya per versi: python3.12-venv, bukan python3-venv saja.
+    tag = "python%d.%d" % sys.version_info[:2]
+    print("       Paling gampang, jalankan:  bash setup-linux.sh")
+    print(f"       Itu memasang {tag}-venv sendiri lalu melanjutkan sampai selesai.")
+    print(f"       Kalau mau manual:  sudo apt install {tag}-venv")
 
 
 def _install_into(python: str, missing: list) -> bool:
@@ -167,7 +172,6 @@ def _make_venv() -> bool:
         print()
         print("[deps] GAGAL membuat virtualenv yang lengkap.")
         _apt_venv_hint()
-        print(f"       Lalu jalankan lagi: {sys.executable} {Path(__file__).name}")
         return False
     return True
 
@@ -219,7 +223,6 @@ def ensure_deps() -> bool:
             print(f"[deps] {VENV_DIR.name} ini tidak punya pip - venv-nya cacat.")
             print(f"       Hapus dulu:  rm -rf {VENV_DIR}")
             _apt_venv_hint()
-            print("       Lalu jalankan lagi:  bash setup-linux.sh")
             return False
         return _install_into(sys.executable, missing)
 
